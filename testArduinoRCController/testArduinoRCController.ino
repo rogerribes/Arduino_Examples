@@ -80,6 +80,9 @@ void readAxis(){
 		vectorX = tempX;
 	};
 }
+/**
+ * Prepares values to send to motors 
+ */
 void parseDirection(){
    volatile int motorLeft; 
    volatile int motorRight;
@@ -91,45 +94,66 @@ void parseDirection(){
     }
  
   if(vectorY<middleY){
-    //motorLeft = map(vectorY, 0, middleY, 0, maxpwm);
-    //motorRight = map(vectorY, 0, middleY, 0, maxpwm);
-    //updateMotors(,,0,0);
+      motorLeft = map(vectorY, 0, middleY, 0, maxpwm);
+      motorRight = map(vectorY, 0, middleY, 0, maxpwm);
+      updateMotors(,,0,0);
     }else if(vectorY>middleY){
-      //motorLeft = map(vectorY, middleY, 1023, 0, maxpwm);
-      //motorRight = map(vectorY, middleY, 1023, 0, maxpwm);
-      //updateMotors(,,1,1);
+        motorLeft = map(vectorY, middleY, 1023, 0, maxpwm);
+        motorRight = map(vectorY, middleY, 1023, 0, maxpwm);
+        updateMotors(,,1,1);
       }
 
    if(vectorY>1000){
-      motorLeft = map(vectorY, middleY, 1023, 0, maxpwm + adjpwmMotorLeft);
-      motorRight = map(vectorY, middleY, 1023, 0, maxpwm + adjpwmMotorRight);
+      motorLeft = map(vectorY, middleY, 1023, 0, maxpwm);
+      motorRight = map(vectorY, middleY, 1023, 0, maxpwm);
       updateMotors(motorLeft, motorRight,1,1);
     }else if(vectorY<25){
-      motorLeft = map(vectorY, 0, middleY, 0, maxpwm + adjpwmMotorLeft);
-      motorRight = map(vectorY, 0, middleY, 0, maxpwm + adjpwmMotorRight);
+      motorLeft = map(vectorY, 0, middleY, 0, maxpwm);
+      motorRight = map(vectorY, 0, middleY, 0, maxpwm);
       updateMotors(motorLeft, motorRight,0,0);
     }
   
   }
-  // Axis X goes from 0 to 254. 128 is middle.
+  // Axis X goes from 0 to 1023. MiddleX are center.
   // have to modificate speed on motors.
-  // less 128 is Left more Right.
+  // less than middleX as Left, else Right.
   // Acelerate left motor goes to Right.
   // bool motor: 0 Left, 1 Right
-  void testaxisX(int motorpwm, bool motor){
-  int dirMotor;
-
   
+ /*
+  * Modifies Trottle for motor evaluating axis X
+  * @input int motorpwm: value of pwm for motor with Y evaluated
+  * @input bool motor: Wich motor are evaluating
+  * @returns int finalpwm: Final value for Trottle motor
+  */
+  int applyAxisX(int motorpwm, bool motor){
+    int dirMotor;
+    int finalpwm = motorpwm;
+
+    // Calculates in PWM value and Direction of Axis X  
     if(vectorX<middleX){
+        dirMotor = map(vectorX, 0, middleX, 0, maxpwm);
       }else if(vectorX>middleX){
-        
+        dirMotor = map(vectorX, middleX, 1023, 0, maxpwm);
         }
-    
-    if (motor){
-      
+    if(vectorX<middleX){
+    // bool motor: 0 Left, 1 Right
+    if (!motor){
+       finalpwm = (motorpwm*0.7)+(dirMotor*0.3);
+      }else{
+          finalpwm = motorpwm * 0.8;
+      }
+    }else if(vectorX<middleX){
+        // bool motor: 0 Left, 1 Right
+        if(motor){
+            finalpwm = (motorpwm*0.7)+(dirMotor*0.3);    
+            }else{
+          finalpwm = motorpwm * 0.8;
       }
     }
-  
+      return finalpwm;
+  }
+
 /*
 * Update Motor PWM values and direction
 * @input int m1pwm: throttle Motor Left 
@@ -141,23 +165,23 @@ void updateMotors(int m1pwm, int m2pwm, bool m1, bool m2){
 	if(m1){
     digitalWrite(mLDir1, HIGH);
     digitalWrite(mLDir2, LOW);
-    analogWrite(mLPWM, m1pwm);
+    analogWrite(mLPWM, m1pwm + adjpwmMotorLeft);
      
 	  }else{
 	    digitalWrite(mLDir1, LOW);
       digitalWrite(mLDir2, HIGH);
-      analogWrite(mLPWM, m1pwm);
+      analogWrite(mLPWM, m1pwm + adjpwmMotorLeft);
 	    };
 
   if(m2){
     digitalWrite(mRDir1, HIGH);
     digitalWrite(mRDir2, LOW);
-    analogWrite(mRPWM, m2pwm);
+    analogWrite(mRPWM, m2pwm + adjpwmMotorRight);
       
     }else{
       digitalWrite(mRDir1, LOW);
       digitalWrite(mRDir2, HIGH);
-      analogWrite(mRPWM, m2pwm);
+      analogWrite(mRPWM, m2pwm + adjpwmMotorRight);
       }
 }
 

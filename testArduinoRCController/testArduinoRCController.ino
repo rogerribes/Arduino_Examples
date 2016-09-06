@@ -96,11 +96,11 @@ void parseDirection(){
   if(vectorY<middleY){
       motorLeft = map(vectorY, 0, middleY, 0, maxpwm);
       motorRight = map(vectorY, 0, middleY, 0, maxpwm);
-      updateMotors(,,0,0);
+      updateMotors(applyAxisX(motorLeft,0),applyAxisX(motorRight,1),0,0);
     }else if(vectorY>middleY){
         motorLeft = map(vectorY, middleY, 1023, 0, maxpwm);
         motorRight = map(vectorY, middleY, 1023, 0, maxpwm);
-        updateMotors(,,1,1);
+        updateMotors(applyAxisX(motorLeft,0),applyAxisX(motorRight,1),1,1);
       }
 
    if(vectorY>1000){

@@ -15,19 +15,19 @@
 
 int axisX = A0;
 int axisY = A1;
-int sw = 2;
+int sw = 6;
 
 //Pin Definition for Driver
 
 // Left Motor
-int mLPWM = 4;
-int mLDir1 = 5;
-int mLDir2 = 6;
+int mLPWM = 10;
+int mLDir1 = 4;
+int mLDir2 = 5;
 
 // Right Motor
-int mRPWM = 7;
-int mRDir1 = 8;
-int mRDir2 = 9;
+int mRPWM = 9;
+int mRDir1 = 2;
+int mRDir2 = 3;
 
 //Global Variables
 int vectorX = 0;
@@ -38,8 +38,8 @@ int middleX = 656;
 int middleY = 322;
 
 //Variables for Adjustments
-int xSmooth = 25;
-int ySmooth = 25;
+int xSmooth = 100;
+int ySmooth = 100;
 int maxpwm = 230;
 // Used for Stablish diference with two motors 
 int adjpwmMotorLeft = -5;
@@ -59,11 +59,13 @@ void setup(){
 	pinMode(mLPWM, OUTPUT);
 	pinMode(mRPWM, OUTPUT);
 	
-	//setZeroOnJoysticks();
+	setZeroOnJoysticks();
 }
 
 void loop(){
 	readAxis();
+ parseDirection();
+ printValues();
 }
 /*
  * Check if Joysticks Values Changes significally and updates her values.
@@ -77,7 +79,7 @@ void readAxis(){
 		vectorX = tempX;
 	};
 	if(vectorY < tempY + ySmooth || vectorY > tempY + ySmooth){
-		vectorX = tempX;
+		vectorY = tempY;
 	};
 }
 /**
@@ -208,3 +210,9 @@ void setZeroOnJoysticks(){
 	middleX = analogRead(axisX);
 	middleY = analogRead(axisY);
 }
+void printValues(){
+  Serial.print("Value on X: ");
+  Serial.print(vectorX);
+  Serial.print("Value on Y: ");
+  Serial.println(vectorY);
+  }

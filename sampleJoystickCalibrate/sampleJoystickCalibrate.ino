@@ -5,11 +5,13 @@ int deadzone = 1;
 void setup() {
   center_x = analogRead(A0);
   center_y = analogRead(A1);
+  Serial.begin(9600);
 }
 
 void loop() {
   int joystickValue_x = readStick(A0, center_x);
   int joystickValue_y = readStick(A1, center_y);
+  printValues(joystickValue_x, joystickValue_y);
 }
 
 int readStick(int pinNumber, int center) {
@@ -23,3 +25,10 @@ int readStick(int pinNumber, int center) {
   }    
   return adjustedValue;
 }
+void printValues(int valuex, int valuey){
+  Serial.print("Valor de X: ");
+  Serial.print(valuex);
+  Serial.print(" || Valor de Y: ");
+  Serial.println(valuey);
+  delay(250);
+  }

@@ -67,10 +67,11 @@ void setup() {
 void loop() {
   // Current State Not volatile on Loop Iterations
   static int state = S_STOP ;
+  int lastCommand;
    
   if(checkState(interval)){
 	//  Last Command from Bluetooth Readed
-    int lastCommand = cmdToState(readCommand());  
+    lastCommand = cmdToState(readCommand());  
     switch(state){
       case S_FWD:
         if(lastCommand == state){
@@ -122,7 +123,8 @@ void loop() {
       }
     }
 	// Print On Usb Serial Monitor RC Status
-	printOnSerial();
+	printOnSerial(state, lastCommand);
+  Serial.println("test");
 }
 /*
  * Translates recived Command to a Valid State
@@ -165,7 +167,7 @@ String readCommand(){
  *
  */
 bool checkState(int interval){
-  volatile unsigned long currentMillis = millis();
+  unsigned long currentMillis = millis();
   if(currentMillis > previousMillis + interval){
 	previousMillis = currentMillis;
     return true;
@@ -200,7 +202,7 @@ int motorIncrement(int current, bool turn){
   * Function to Provide Feedback to Usb Serial and PC
   * print on Serial Monitor current State, Command, and Values
   */
-  void printOnSerial(){
+  void printOnSerial(int state, int lastCommand){
 	  if(checkState(200)){
 		  Serial.print("Current State: ");
 		  Serial.print(state);

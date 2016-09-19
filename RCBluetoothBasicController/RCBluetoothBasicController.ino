@@ -123,8 +123,8 @@ void loop() {
       }
     }
 	// Print On Usb Serial Monitor RC Status
-	printOnSerial(state, lastCommand);
-  Serial.println("test");
+	
+	//Serial.println("test");
 }
 /*
  * Translates recived Command to a Valid State
@@ -168,8 +168,9 @@ String readCommand(){
  */
 bool checkState(int interval){
   unsigned long currentMillis = millis();
-  if(currentMillis > previousMillis + interval){
+  if(currentMillis >= previousMillis + interval){
 	previousMillis = currentMillis;
+	printOnSerial(state, lastCommand);
     return true;
   }else{
     return false;

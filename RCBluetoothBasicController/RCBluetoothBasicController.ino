@@ -1,29 +1,41 @@
 /*
 * Arduino Basic RC Controller
 *
-* Code for Control RC Robot with 2 Motors and Joystick
+* Code for Control RC Robot with 2 Motors
+* Joystick are Android Serial App from Bluetooth HC-06
 *
-* Input: Joystick two Axis with Switch
+* Input: Slave HC-06 Bluetooth Module, Android App
 * Output: Driver Motor L298N Controller for two Motors
 *
 * Author: Roger Ribes.
 *
 *
 */
-#include <SoftwareSerial.h>
-// Module Blouetooth
-SoftwareSerial mySerial(9, 8); // RX, TX
-//Pin Definition for Driver
 
+// Library for Serial comunication on any desired pin
+#include <SoftwareSerial.h>
+
+// Module Bluetooth
+SoftwareSerial mySerial(9, 8); // RX, TX
+
+//Pin Definition for Driver
 // Left Motor
 const int mLPWM = 6;
 const int mLDir1 = 5;
 const int mLDir2 = 7;
-
 // Right Motor
 const int mRPWM = 3;
 const int mRDir1 = 2;
 const int mRDir2 = 4;
+/*
+* Finite State Machine State Definition
+* Used for Control Logic of RC Car
+*/
+const short S_STOP = 0;
+const short S_FWD = 1;
+const short S_REV = 2;
+const short S_LEFT = 3;
+const short S_RIGHT = 4;
 
 //Variables for Adjustments
 int pwmIncrement = 10;
@@ -31,26 +43,11 @@ int pwmDecrement = 20;
 int maxPwm = 230;
 int maxTurnPwm = 150;
 unsigned long previousMillis = 0;
-int interval = 30;
+int interval = 50;
 
 //Throttle Motors
 int m1Current = 0;
 int m2Current = 0;
-int lastCommand;
-bool commandrec = false;
-//State of Motor Driver
-
- // ESTATES FOR FSM
-  const short S_STOP = 0;
-  const short S_FWD = 1;
-  const short S_REV = 2;
-  const short S_LEFT = 3;
-  const short S_RIGHT = 4;
-
- 
-
-
-
 
 void setup() {
   // Stablish Outputs for Motor Driver
@@ -60,17 +57,20 @@ void setup() {
   pinMode(mRDir2, OUTPUT);
   pinMode(mLPWM, OUTPUT);
   pinMode(mRPWM, OUTPUT);
+  
+  // Initialize Serial Comunications
+  Serial.begin(9600);
+  mySerial.begin(9600);
 
 }
 
 void loop() {
   // Current State Not volatile on Loop Iterations
   static int state = S_STOP ;
-  
-  lastCommand = cmdToState(readCommand());
-  
    
-  if(checkState()){
+  if(checkState(interval)){
+	//  Last Command from Bluetooth Readed
+    int lastCommand = cmdToState(readCommand());  
     switch(state){
       case S_FWD:
         if(lastCommand == state){
@@ -79,6 +79,7 @@ void loop() {
           forward(m1Current, m2Current);
           }else{
             stopMotors();
+			state = S_STOP;
             }
         state = lastCommand;
         break;
@@ -89,6 +90,7 @@ void loop() {
           reverse(m1Current, m2Current);
           }else{
             stopMotors();
+			state = S_STOP;
             }
         state = lastCommand;
         break;
@@ -99,6 +101,7 @@ void loop() {
           turnLeft(m1Current, m2Current);
           }else{
             stopMotors();
+			state = S_STOP;
             }
         state = lastCommand;
         break;
@@ -109,20 +112,22 @@ void loop() {
           turnRight(m1Current, m2Current);
           }else{
             stopMotors();
+			state = S_STOP;
             }
         state = lastCommand;
         break;
       case S_STOP:
         stopMotors();
-      default:
-        stopMotors();
-        state = S_STOP;
+		state = lastCommand;
       }
     }
-
+	// Print On Usb Serial Monitor RC Status
+	printOnSerial();
 }
 /*
  * Translates recived Command to a Valid State
+ * @input String command: String to evaluate desired State
+ * @return int State: Returns State recived from controller
  */
 int cmdToState(String command){
   if(command == "FWD"){
@@ -137,9 +142,9 @@ int cmdToState(String command){
   return S_STOP;
   
   }
-/*
+/* 
  * Read Incoming Command
- * @output String command: 
+ * @output String command: Command recived from Bluetooth
  */
 String readCommand(){
   if(mySerial.available()){
@@ -149,43 +154,72 @@ String readCommand(){
       command = command + caract;
       caract = mySerial.read();
       }
-      commandrec = true;
       return command;
     }else{
-      commandrec = false;
       return "";
       }
   }
-
-bool checkState(){
+/*
+ * Determines if it's time to check state Machine
+ * Verifies if pass enough time from last machine update
+ *
+ */
+bool checkState(int interval){
   volatile unsigned long currentMillis = millis();
   if(currentMillis > previousMillis + interval){
+	previousMillis = currentMillis;
     return true;
   }else{
     return false;
     }
   }
+/*
+ * Function to increment Value of PWM Motors. Check if raise stablished Limit
+ * @ input int current: Value to evaluate increment
+ * @ input bool turn: Define its turn operation. Have another pwm Limit
+ * @ output int increment: Return increment to apply to Motor Pwm Pin 
+ *
+ */  
 int motorIncrement(int current, bool turn){
   
   if(turn){
-    if(current + interval >= maxTurnPwm){
+    if(current + pwmIncrement >= maxTurnPwm){
         return maxTurnPwm;
         }else{
-          return current + interval;
+          return current + pwmIncrement;
           }
     }else{
-      if(current + interval >= maxPwm){
+      if(current + pwmIncrement >= maxPwm){
         return maxPwm;
         }else{
-          return current + interval;
+          return current + pwmIncrement;
           }
       }
   }
+ /*
+  * Function to Provide Feedback to Usb Serial and PC
+  * print on Serial Monitor current State, Command, and Values
+  */
+  void printOnSerial(){
+	  if(checkState(200)){
+		  Serial.print("Current State: ");
+		  Serial.print(state);
+		  Serial.print(", Last Command: ");
+		  Serial.print(lastCommand);
+		  Serial.print(" // Motor Left: ");
+		  Serial.print(m1Current);
+		  Serial.print(", Motor Right: ");
+		  Serial.println(m2Current);
+	  }
+  }
 
 /*
- * Stop Motors
+ * Apply to Motor Driver a Stop Configuration
  */
 void stopMotors(){
+  // Reset currentPWM motor Values
+  m1Current = 0;
+  m2Current = 0;
   //stop Left Motor
   digitalWrite(mLDir1, LOW);
   digitalWrite(mLDir2, LOW);
@@ -197,7 +231,9 @@ void stopMotors(){
   }
 
 /*
- * GO FORWARD
+ * Apply to Motor Driver configuration to go Forward
+ * @input int m1pwm: Throttle for Motor Left
+ * @input int m2pwm: Throttle for Motor Right 
  */
  void forward(int m1pwm, int m2pwm){
   digitalWrite(mLDir1, HIGH);
@@ -209,7 +245,9 @@ void stopMotors(){
   analogWrite(mRPWM, m2pwm);
   }
 /*
- * GO REVERSE
+ * Apply to Motor Driver configuration to go Reverse
+ * @input int m1pwm: Throttle for Motor Left
+ * @input int m2pwm: Throttle for Motor Right 
  */
  void reverse( int m1pwm, int m2pwm){
   digitalWrite(mLDir1, LOW);
@@ -221,7 +259,9 @@ void stopMotors(){
   analogWrite(mRPWM, m2pwm);
   }
 /*
- * TURN LEFT
+ * Apply to Motor Driver configuration to Turn Left
+ * @input int m1pwm: Throttle for Motor Left
+ * @input int m2pwm: Throttle for Motor Right 
  */
  void turnLeft( int m1pwm, int m2pwm){
   digitalWrite(mLDir1, LOW);
@@ -233,7 +273,9 @@ void stopMotors(){
   analogWrite(mRPWM, m2pwm);
   }
 /*
- * TURN RIGHT
+ * Apply to Motor Driver configuration to Turn Right
+ * @input int m1pwm: Throttle for Motor Left
+ * @input int m2pwm: Throttle for Motor Right 
  */
  void turnRight(int m1pwm, int m2pwm){
   digitalWrite(mLDir1, HIGH);

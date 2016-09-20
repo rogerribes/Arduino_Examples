@@ -43,7 +43,7 @@ int pwmDecrement = 20;
 int maxPwm = 230;
 int maxTurnPwm = 150;
 unsigned long previousMillis = 0;
-int interval = 50;
+unsigned long interval = 100;
 
 //Throttle Motors
 int m1Current = 0;
@@ -68,10 +68,11 @@ void loop() {
   // Current State Not volatile on Loop Iterations
   static int state = S_STOP ;
   int lastCommand;
-   
-  if(checkState(interval)){
+   Serial.println(checkState(interval));
+ // if(checkState(interval)){
 	//  Last Command from Bluetooth Readed
-    lastCommand = cmdToState(readCommand());  
+    lastCommand = cmdToState(readCommand()); 
+    printOnSerial(state, lastCommand); 
     switch(state){
       case S_FWD:
         if(lastCommand == state){
@@ -121,7 +122,7 @@ void loop() {
         stopMotors();
 		state = lastCommand;
       }
-    }
+    //}
 	// Print On Usb Serial Monitor RC Status
 	
 	//Serial.println("test");
@@ -166,14 +167,13 @@ String readCommand(){
  * Verifies if pass enough time from last machine update
  *
  */
-bool checkState(int interval){
+bool checkState(unsigned long interval){
   unsigned long currentMillis = millis();
   if(currentMillis >= previousMillis + interval){
 	previousMillis = currentMillis;
-	printOnSerial(state, lastCommand);
-    return true;
+    return 1;
   }else{
-    return false;
+    return 0;
     }
   }
 /*
@@ -204,7 +204,7 @@ int motorIncrement(int current, bool turn){
   * print on Serial Monitor current State, Command, and Values
   */
   void printOnSerial(int state, int lastCommand){
-	  if(checkState(200)){
+	//  if(checkState(200)){
 		  Serial.print("Current State: ");
 		  Serial.print(state);
 		  Serial.print(", Last Command: ");
@@ -213,7 +213,7 @@ int motorIncrement(int current, bool turn){
 		  Serial.print(m1Current);
 		  Serial.print(", Motor Right: ");
 		  Serial.println(m2Current);
-	  }
+	  //}
   }
 
 /*
